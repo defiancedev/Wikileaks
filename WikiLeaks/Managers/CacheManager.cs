@@ -28,6 +28,9 @@ namespace WikiLeaks.Managers
         public CacheManager(MainWindow wnd, string pathToFolder)
         {
             _mainWindow = wnd;
+            
+            if(string.IsNullOrWhiteSpace(pathToFolder))
+                pathToFolder = EnvironmentEx.AppDataFolder + "\\Cache\\";
 
             CacheIds = new List<float>();
 

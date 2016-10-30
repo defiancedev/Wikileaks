@@ -141,6 +141,7 @@
     <Compile Include="Enums\SignatureValidation.cs" />
     <Compile Include="Models\Attachment.cs" />
     <Compile Include="Converters\SignatureValidationToColorConverter.cs" />
+    <Compile Include="Models\SearchStatus.cs" />
     <Compile Include="Services\DkimLocator.cs" />
     <Compile Include="Extensions\MimeKitExtensions.cs" />
     <Compile Include="Services\EmailValidation.cs" />

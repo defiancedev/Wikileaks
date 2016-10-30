@@ -74,9 +74,21 @@ namespace WikiLeaks.Managers
                if(!cacheIds.Contains(i))
                      cacheIds.Add(i);
             }
+            SearchStatus emailStatus = new SearchStatus();
+            emailStatus.ControlName = "prgEmailProgress";
+            emailStatus.Start = startId;
+            emailStatus.End = endId;
+            emailStatus.Reset = true;
+            emailStatus.Current = startId;
+            _mainWindow.UpdateUi(emailStatus, "progressbar.update");
+            emailStatus.Reset = false;
 
             foreach (float cacheId in cacheIds)
             {
+                emailStatus.Current = cacheId;
+                _mainWindow.UpdateUi(emailStatus, "progressbar.update");
+
+
                 if (CancelSearch)
                 {
                     CancelSearch = false;
@@ -119,8 +131,23 @@ namespace WikiLeaks.Managers
                 string[] searchTerms = searchFilter.SearchTokens.Split(',');
                 string highlightColor = searchFilter.HighlightColor.GetHtmlHexColor();
 
+
+                SearchStatus termStatus = new SearchStatus();
+                termStatus.ControlName = "prgSearchTerms";
+                termStatus.Start = 0;
+                termStatus.End = searchTerms.Count() -1;
+                termStatus.Reset = true;
+                termStatus.Current = 0;
+                _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                termStatus.Reset = false;
+                int termIdx = 0;
+
                 foreach (string searchTerm in searchTerms)
                 {
+                    termStatus.Current = termIdx;
+                    _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                    termIdx++;
+
                     if (!searchResult.Document.Contains(searchTerm))
                         continue;
                  
@@ -150,7 +177,8 @@ namespace WikiLeaks.Managers
                         return;
                     }
                 }
-
+                termStatus.Current = 0;
+                _mainWindow.UpdateUi(termStatus, "progressbar.update");
                 ////this will update the treeview, by default it shows the filters in the
                 ////root, so if the filter found something in an email then add/update
                 ////the email id under the filter node.
@@ -158,7 +186,11 @@ namespace WikiLeaks.Managers
                 {
                     _mainWindow.UpdateUi(searchResult, "treeview.results");
                 }
+          
+
             }
+            emailStatus.Current = startId;
+            _mainWindow.UpdateUi(emailStatus, "progressbar.update");
         }
 
         protected bool SaveToResults(float leakId, string document)

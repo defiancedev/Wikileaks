@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WikiLeaks.Extensions;
 using WikiLeaks.Models;
 
 namespace WikiLeaks.Managers
@@ -18,19 +19,25 @@ namespace WikiLeaks.Managers
         {
             _mainWindow = wnd;
             Filters = new List<Filter>();
+            _filterFolder = EnvironmentEx.AppDataFolder + "\\Filters\\";
+
         }
 
         public FilterManager(MainWindow wnd, string filterFolder)
         {
             _mainWindow = wnd;
 
-            if (Filters == null)
-                Filters = new List<Filter>();
+            Filters = new List<Filter>();
 
-            Filters.Clear();
-
+            //Default it to app_data folder where installed
             if (string.IsNullOrWhiteSpace(filterFolder))
+                filterFolder = EnvironmentEx.AppDataFolder + "\\Filters\\";
+
+            if (string.IsNullOrWhiteSpace(filterFolder) || !Directory.Exists(filterFolder))
+            {
+                _mainWindow.UpdateUi("Filter folder is not valid.", "messagebox.show");
                 return;
+            }
 
             try
             {

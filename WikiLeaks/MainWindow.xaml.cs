@@ -45,6 +45,7 @@ namespace WikiLeaks {
             this.txtBaseUrlSetting.Text = _application.Settings.BaseUrl;
             this.txtCachFolder.Text = _application.Settings.CacheFolder;
             this.txtSearchResultsFolder.Text = _application.Settings.ResultsFolder;
+            this.txtFilterFolder.Text = _application.Settings.FilterFolder;
 
             _filterManager = new FilterManager(this, _application.Settings.FilterFolder);
             LoadFilters();
@@ -108,10 +109,44 @@ namespace WikiLeaks {
             if (int.TryParse(this.txtLeakEndIdSetting.Text, out i))
                 _application.Settings.SearchEndId = i;
 
-            _application.Settings.CacheFolder = this.txtCachFolder.Text.Trim();
+            string tmp  = this.txtCachFolder.Text.Trim(); 
+            try
+            {
+                if (!Directory.Exists(tmp))
+                    Directory.CreateDirectory(tmp);
+            }catch(Exception ex)
+            {
+                MessageBox.Show("Could not create cache folder. " + ex.Message);
+                return;
+            }
+            _application.Settings.CacheFolder = tmp;
 
-            _application.Settings.ResultsFolder = this.txtSearchResultsFolder.Text.Trim();
+          
+            tmp = this.txtSearchResultsFolder.Text.Trim();
+            try
+            {
+                if (!Directory.Exists(tmp))
+                    Directory.CreateDirectory(tmp);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not create results folder. " + ex.Message);
+                return;
+            }
+            _application.Settings.ResultsFolder = tmp;
 
+            tmp = this.txtFilterFolder.Text.Trim();
+            try
+            {
+                if (!Directory.Exists(tmp))
+                    Directory.CreateDirectory(tmp);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not create filter folder. " + ex.Message);
+                return;
+            }
+            _application.Settings.FilterFolder = tmp;
             _application.SaveSettings("");
         }
         #endregion
@@ -348,16 +383,41 @@ namespace WikiLeaks {
         {
             ToggleRadioButtonsForSearch(false);
 
-            //todo put a flag in the filter class to set as active.
-            //this way we can toggle from the ui then save to file
-            //Then filter here where Filter.Enabled == true;
-            //
+            SearchStatus filterStatus = new SearchStatus();
+            filterStatus.ControlName = "prgFilterProgress";
+            filterStatus.Start = 0;
+            filterStatus.End = _filterManager.Filters.Count() - 1;
+            filterStatus.Reset = true;
+            filterStatus.Current = 0;
+            UpdateUi(filterStatus, "progressbar.update");
+            filterStatus.Reset = false;
+            int Idx = 0;
+
+                //todo put a flag in the filter class to set as active.
+                //this way we can toggle from the ui then save to file
+                //Then filter here where Filter.Enabled == true;
+                //
             foreach (Filter filter in _filterManager.Filters)
             {
+                filterStatus.Current =Idx;
+                UpdateUi(filterStatus, "progressbar.update");
+                Idx++;
                 _documentManager.SearchDocuments(startId, endId,  filter.Name, false);
             }
 
             ToggleRadioButtonsForSearch(true);
+            filterStatus.Current = 0;
+            UpdateUi(filterStatus, "progressbar.update");
+
+           //kludge cause the progress bar for terms isn't resetting.
+            SearchStatus termStatus = new SearchStatus();
+            termStatus.ControlName = "prgSearchTerms";
+            termStatus.Start = 0;
+            termStatus.End = 4;
+            termStatus.Reset = true;
+            termStatus.Current = 0;
+            UpdateUi(termStatus, "progressbar.update");
+
             MessageBox.Show("Document search completed.");
         }
 
@@ -435,24 +495,26 @@ namespace WikiLeaks {
 
         //Used in DocumentManager to update the status of the ui as it processes.
         //
-        public void UpdateUi(object resultInfo, string uiElement){
+        public void UpdateUi(object sender, string uiElement){
 
             switch (uiElement.ToLower())
             {
                 case "treeview.results":
-                    SearchResult tvInfo = (SearchResult)resultInfo;
+                    SearchResult tvInfo = (SearchResult)sender;
                     //Because another thread is sending this info to update
                     //the ui we have to let the dispatching/owner thread update the ui
                     Dispatcher.Invoke(DispatcherPriority.Normal, new Action<SearchResult>(UpdateResultTree), tvInfo);
                     break;
                 case "progressbar.update":
-
+                    SearchStatus sts = (SearchStatus)sender;
+                    if(sts != null)
+                        Dispatcher.Invoke(DispatcherPriority.Normal, new Action<SearchStatus>(UpdateStatus), sts);
                     break;
                 case "messagebox.show":
-                    MessageBox.Show(resultInfo?.ToString());
+                    MessageBox.Show(sender?.ToString());
                     break;
                 case "radiobutton.toggle":
-                    ToggleRadioButtonsForSearch((bool)resultInfo);
+                    ToggleRadioButtonsForSearch((bool)sender);
                     break;
             }
         }
@@ -490,6 +552,33 @@ namespace WikiLeaks {
             node.Header = tvInfo.LeakId.ToString() + " (*)"; // " (" + count.ToString() + ")";
             node.Tag = tvInfo.LeakId.ToString();
             parentNode.Items.Add(node);
+        }
+
+        private void UpdateStatus(SearchStatus sts)
+        {
+            ProgressBar updateMe = null;
+            switch (sts.ControlName)
+            {
+                case "prgEmailProgress":
+                    updateMe = prgEmailProgress;
+                    break;
+                case "prgFilterProgress":
+                    updateMe = prgFilterProgress;
+                    break;
+                case "prgSearchTerms":
+                    updateMe = prgSearchTerms;
+                    break;
+                default:return;
+            }
+            if (updateMe == null)
+                return;
+
+            if (sts.Reset)
+            {
+                updateMe.Minimum = sts.Start;
+                updateMe.Maximum = sts.End;
+            }
+            updateMe.Value = sts.Current;
         }
 
         //Loads the treeview in results area and the listview in filters tab.
