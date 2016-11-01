@@ -1,25 +1,23 @@
-﻿using System.ComponentModel.Composition;
+﻿using MimeKit;
+using mshtml;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.Composition;
+using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Navigation;
-using mshtml;
-using WikiLeaks.Models;
-using WikiLeaks.Managers;
-using System.IO;
-using System;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Linq;
-using System.Drawing;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 using WikiLeaks.Abstract;
+using WikiLeaks.Managers;
 using WikiLeaks.Models;
 
-namespace WikiLeaks {
+namespace WikiLeaks
+{
 
     [Export(typeof(MainWindow))]
     public partial class MainWindow : IPartImportsSatisfiedNotification {
@@ -310,12 +308,25 @@ namespace WikiLeaks {
             // 
             string[] fileEntries = Directory.GetFiles(_application.Settings.ResultsFolder, "*.html", System.IO.SearchOption.AllDirectories);
 
+            List<int> fileNumbers = new List<int>();
+
             foreach (string pathToFile in fileEntries)
             {
                 string file = Path.GetFileNameWithoutExtension(pathToFile);
+                try
+                {
+                    fileNumbers.Add(int.Parse(file));
+                }
+                catch { }
+
+            }
+            fileNumbers.Sort();
+
+            foreach (int fileNumber in fileNumbers)
+            {
                 TreeViewItem node = new TreeViewItem();
-                node.Header = file;
-                node.Tag = file;
+                node.Header = fileNumber.ToString();
+                node.Tag = node.Header;
                 tvwSearchResults.Items.Add(node);
             }
 
@@ -325,21 +336,83 @@ namespace WikiLeaks {
         {
             _viewState = "CacheView";
 
-            //show files from cache
-            tvwSearchResults.Items.Clear();
 
-            //show files from results folder
-            // 
-            string[] fileEntries = Directory.GetFiles(_application.Settings.CacheFolder, "*.html", System.IO.SearchOption.AllDirectories);
+            //System.Threading.Thread t1 = new System.Threading.Thread
+            //(delegate ()
+            //{
+               
 
-            foreach (string pathToFile in fileEntries)
-            {
-                string file = Path.GetFileNameWithoutExtension(pathToFile);
-                TreeViewItem node = new TreeViewItem();
-                node.Header = file;
-                node.Tag = file;
-                tvwSearchResults.Items.Add(node);
-            }
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    //show files from cache
+                    tvwSearchResults.Items.Clear();
+
+                    //show files from results folder
+                    // 
+                    string[] fileEntries = Directory.GetFiles(_application.Settings.CacheFolder, "*.eml", System.IO.SearchOption.AllDirectories);
+
+                    List<int> fileNumbers = new List<int>();
+
+                    foreach (string pathToFile in fileEntries)
+                    {
+
+                        string file = Path.GetFileNameWithoutExtension(pathToFile);
+                        try
+                        {
+                            fileNumbers.Add(int.Parse(file));
+                        }
+                        catch { }
+
+                    }
+                    fileNumbers.Sort();
+
+                    foreach (int fileNumber in fileNumbers)
+                    {
+                        TreeViewItem node = new TreeViewItem();
+                        node.Header = fileNumber.ToString();
+                        node.Tag = node.Header;
+                        tvwSearchResults.Items.Add(node);
+                    }
+
+                }));
+
+            //});
+            //t1.Start();
+
+
+        
+            ////show files from cache
+            //tvwSearchResults.Items.Clear();
+
+            ////show files from results folder
+            //// 
+            //string[] fileEntries = Directory.GetFiles(_application.Settings.CacheFolder, "*.eml", System.IO.SearchOption.AllDirectories);
+
+            //List<int> fileNumbers = new List<int>();
+
+            //foreach (string pathToFile in fileEntries)
+            //{
+                
+            //    string file = Path.GetFileNameWithoutExtension(pathToFile);
+            //    try
+            //    {
+            //        fileNumbers.Add(int.Parse(file));
+            //    }
+            //    catch { }
+            
+            //}
+            //fileNumbers.Sort();
+
+            //foreach (int fileNumber in fileNumbers)
+            //{
+            //    TreeViewItem node = new TreeViewItem();
+            //    node.Header = fileNumber.ToString();
+            //    node.Tag = node.Header;
+            //    tvwSearchResults.Items.Add(node);
+            //}
+
+          
+
         }
 
         private void rdoAttachmentsView_Click(object sender, RoutedEventArgs e)
@@ -381,42 +454,32 @@ namespace WikiLeaks {
 
         private void SearchDocuments(int startId, int endId)
         {
+            if (startId > endId || startId < 0)
+            {
+                UpdateUi("INVALID IDs", "messagebox.show");
+                return;
+            }
             ToggleRadioButtonsForSearch(false);
 
-            SearchStatus filterStatus = new SearchStatus();
-            filterStatus.ControlName = "prgFilterProgress";
-            filterStatus.Start = 0;
-            filterStatus.End = _filterManager.Filters.Count() - 1;
-            filterStatus.Reset = true;
-            filterStatus.Current = 0;
-            UpdateUi(filterStatus, "progressbar.update");
-            filterStatus.Reset = false;
-            int Idx = 0;
+            _documentManager.ClearSearchResults();
 
-                //todo put a flag in the filter class to set as active.
-                //this way we can toggle from the ui then save to file
-                //Then filter here where Filter.Enabled == true;
-                //
-            foreach (Filter filter in _filterManager.Filters)
+            SearchStatus emailStatus = new SearchStatus();
+            emailStatus.ControlName = "prgEmailProgress";
+            emailStatus.Start = startId;
+            emailStatus.End = endId;
+            emailStatus.Reset = true;
+            emailStatus.Current = startId;
+            UpdateUi(emailStatus, "progressbar.update");
+            emailStatus.Reset = false;
+
+            for(int i = startId; i <= endId; i++)
             {
-                filterStatus.Current =Idx;
-                UpdateUi(filterStatus, "progressbar.update");
-                Idx++;
-                _documentManager.SearchDocuments(startId, endId,  filter.Name, false);
+                _documentManager.SearchDocument(i);
+                emailStatus.Current = i;
+                UpdateUi(emailStatus, "progressbar.update");
             }
-
+     
             ToggleRadioButtonsForSearch(true);
-            filterStatus.Current = 0;
-            UpdateUi(filterStatus, "progressbar.update");
-
-           //kludge cause the progress bar for terms isn't resetting.
-            SearchStatus termStatus = new SearchStatus();
-            termStatus.ControlName = "prgSearchTerms";
-            termStatus.Start = 0;
-            termStatus.End = 4;
-            termStatus.Reset = true;
-            termStatus.Current = 0;
-            UpdateUi(termStatus, "progressbar.update");
 
             MessageBox.Show("Document search completed.");
         }
@@ -454,43 +517,46 @@ namespace WikiLeaks {
 
             string nodeName = tvi.Tag?.ToString();
 
-            string viewDirectory = _application.Settings.ResultsFolder;
+            int emailId;
+            if (!int.TryParse(nodeName, out emailId))
+                return;
+
+            string pathToFile = "";
+            MimeMessage msg = null;
 
             switch (_viewState)
             {
                 case "FilterView":
                 case "ResultsView":
-                    viewDirectory = _application.Settings.ResultsFolder;
+                    pathToFile = Path.Combine(  _application.Settings.ResultsFolder, nodeName + ".html" );
+                    //show the email
+                    this.WebBrowser.Navigate(pathToFile);
+                    Dispatcher.BeginInvoke((Action)(() => tabControl.SelectedIndex = 0));
+
+                    msg = _documentManager.GetCachedEmail(emailId);
+
+                    //msg.Verify()
+                    //
+                    //From = message.From;
+                    //To = message.To;
+                    //Cc = message.Cc;
+                    //Subject = message.Subject;
+                    //Date = message.Date;
+                    //message.TextBody.Replace("\r\n", "<br/>") : message.HtmlBody;
+
                     break;
                 case "CacheView":
-                    viewDirectory = _application.Settings.CacheFolder;
-                    break;
-                case "AttachmentsView":
-                    viewDirectory = _application.Settings.CacheFolder + "Attachments\\";
+                    msg = _documentManager.GetCachedEmail(emailId);
+                    if (msg == null)
+                        return;
+                    this.WebBrowser.NavigateToString(msg.HtmlBody);
+
                     break;
             }
-
-            float ftmp;
-            if (_viewState != "AttachmentsView" &&  float.TryParse(nodeName, out ftmp))
-            {
-                if ( (ftmp % 1) != 0 )
-                    return; //todo  launch app for the attachement or open folder with file selected
-
-                string pathToFile = string.Format("{0}{1}.html", viewDirectory, nodeName);
-
-                if (!File.Exists(pathToFile))
-                {
-                    MessageBox.Show( "FILE NOT FOUND! " + pathToFile);
-                    return;
-                }
-                //show the email
-                this.WebBrowser.Navigate(pathToFile);
-                Dispatcher.BeginInvoke((Action)(() => tabControl.SelectedIndex = 0));
-                return;
-            }
-            //else load filter
-
         }
+
+    
+
         #endregion
 
         //Used in DocumentManager to update the status of the ui as it processes.
@@ -501,14 +567,18 @@ namespace WikiLeaks {
             {
                 case "treeview.results":
                     SearchResult tvInfo = (SearchResult)sender;
+                    if (tvInfo.ResultCount == 0)
+                        return;
                     //Because another thread is sending this info to update
                     //the ui we have to let the dispatching/owner thread update the ui
                     Dispatcher.Invoke(DispatcherPriority.Normal, new Action<SearchResult>(UpdateResultTree), tvInfo);
                     break;
                 case "progressbar.update":
                     SearchStatus sts = (SearchStatus)sender;
-                    if(sts != null)
+                    if (sts != null)
+                    {
                         Dispatcher.Invoke(DispatcherPriority.Normal, new Action<SearchStatus>(UpdateStatus), sts);
+                    }
                     break;
                 case "messagebox.show":
                     MessageBox.Show(sender?.ToString());
@@ -519,6 +589,8 @@ namespace WikiLeaks {
             }
         }
 
+        private Object treeLock = new Object();
+
         private void UpdateResultTree(SearchResult tvInfo)
         {
             //find the root node
@@ -528,7 +600,6 @@ namespace WikiLeaks {
             {
                 if ((rootNode.Tag.ToString() == tvInfo.FilterName))
                 {
-                    rootNode.Header = tvInfo.FilterName + " (*)"; //" (" + tvInfo.ResultCount.ToString() + ")";
                     parentNode = rootNode;
                     break;
                 }
@@ -542,16 +613,15 @@ namespace WikiLeaks {
             {
                 if ((childNode.Tag.ToString() == tvInfo.LeakId.ToString()))
                 {
-                    return;//found, already here so bail out.
+                    break;//found, already here so bail out.
                 }
             }
-            int count = 0;
-            tvInfo.LeakHitCount.TryGetValue(tvInfo.LeakId, out count);
-
             TreeViewItem node = new TreeViewItem();
-            node.Header = tvInfo.LeakId.ToString() + " (*)"; // " (" + count.ToString() + ")";
+            node.Header = tvInfo.LeakId.ToString() + " (" + tvInfo.ResultCount.ToString() + ")";
             node.Tag = tvInfo.LeakId.ToString();
             parentNode.Items.Add(node);
+            //update the root node label to show the document count under it.
+            parentNode.Header = tvInfo.FilterName + " (" + parentNode.Items?.Count.ToString() + ")"; 
         }
 
         private void UpdateStatus(SearchStatus sts)
@@ -610,6 +680,6 @@ namespace WikiLeaks {
             }
         }
 
-    
+  
     }
 }

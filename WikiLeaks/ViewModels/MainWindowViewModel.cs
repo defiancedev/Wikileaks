@@ -34,7 +34,7 @@ namespace WikiLeaks.ViewModels {
         readonly IHighlighter _highlighter;
 
         public void Initialize(){
-            DocumentNo = Settings.Default.DocumentNo;
+         //   DocumentNo = Settings.Default.DocumentNo;
         }
 
         public ICommand NextCommand => new RelayCommand(() =>
@@ -56,7 +56,7 @@ namespace WikiLeaks.ViewModels {
 
         public ICommand WikileaksCommand => new RelayCommand(() =>
         {
-            Process.Start(Url);
+          //  Process.Start(Url);
         });
 
         #region Properties

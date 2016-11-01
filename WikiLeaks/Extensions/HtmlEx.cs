@@ -32,6 +32,9 @@ namespace WikiLeaks.Extensions
         /// <returns></returns>
         public static string HighlightText(this string html, string searchTerm, string color, string options ="")
         {
+            if (string.IsNullOrWhiteSpace(html) || string.IsNullOrWhiteSpace(searchTerm))
+                return html;
+
             StringBuilder tmp = new StringBuilder(html);
             tmp = tmp.Replace(searchTerm, $@"<strong style=""color:{color}"">{searchTerm}</strong>");
             tmp = tmp.Replace(searchTerm.ToUpper(), $@"<strong style=""color:{color}"">{searchTerm.ToUpper()}</strong>");

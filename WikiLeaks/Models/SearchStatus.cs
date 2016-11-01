@@ -12,7 +12,7 @@ namespace WikiLeaks.Models
 
         public int End { get; set; }
 
-        public float Current { get; set; }
+        public int Current { get; set; }
 
         public bool Reset { get; set; }
 

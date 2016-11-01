@@ -1,16 +1,23 @@
 ﻿using HtmlAgilityPack;
+using MimeKit;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using WikiLeaks.Extensions;
 using WikiLeaks.Models;
+
+//this is .eml. Attachments are embedded
+//https://wikileaks.org/podesta-emails//get/1
+//html version (no attachments)
+//https://wikileaks.org/podesta-emails/emailid/
 
 namespace WikiLeaks.Managers
 {
@@ -23,7 +30,12 @@ namespace WikiLeaks.Managers
         private readonly Regex _attachmentRegex = new Regex("</span>(?<FileName>.+)<br><small>(?<FileSize>.+)<br>(?<ImageType>.+)</small>");
 
         public bool CancelSearch{ get; set; }
-        private Dictionary<float, SearchResult> _searchResults = new Dictionary<float, SearchResult>();
+        private Dictionary<int, SearchResult> _searchResults = new Dictionary<int, SearchResult>();
+
+        public void ClearSearchResults()
+        {
+            _searchResults.Clear();
+        }
 
         //Just being lazy, don't feel like loading all the settings..
         //
@@ -44,7 +56,7 @@ namespace WikiLeaks.Managers
          
         }
 
-        public void SearchDocuments(int startId, int endId,  string filterName, bool includeAttachements)
+        public void SearchDocuments(int startId, int endId,  string filterName)
         {
             if (startId > endId || startId < 0)
             {
@@ -67,9 +79,9 @@ namespace WikiLeaks.Managers
             }
             //Iterate through the cache ID's because they contain references to attachments
             //
-            List<float> cacheIds = _cacheManager.CacheIds.Where(w => w == startId && w <= endId).ToList();
+            List<int> cacheIds = _cacheManager.CacheIds.Where(w => w == startId && w <= endId).ToList();
 
-            for (float i = startId; i <= endId; i++)
+            for (int i = startId; i <= endId; i++)
             {
                if(!cacheIds.Contains(i))
                      cacheIds.Add(i);
@@ -83,11 +95,10 @@ namespace WikiLeaks.Managers
             _mainWindow.UpdateUi(emailStatus, "progressbar.update");
             emailStatus.Reset = false;
 
-            foreach (float cacheId in cacheIds)
+            foreach (int cacheId in cacheIds)
             {
                 emailStatus.Current = cacheId;
                 _mainWindow.UpdateUi(emailStatus, "progressbar.update");
-
 
                 if (CancelSearch)
                 {
@@ -121,7 +132,7 @@ namespace WikiLeaks.Managers
                 }
                 else
                 {   //Go get it.
-                    searchResult.Document = DownloadDocument(cacheId, includeAttachements);
+                    searchResult.Document = DownloadDocument(cacheId);
                     searchResult.FilterName = filterName;
                     searchResult.ResultCount = 0;
                     searchResult.LeakId = cacheId;
@@ -169,6 +180,13 @@ namespace WikiLeaks.Managers
 
                     _searchResults[cacheId] = searchResult;
 
+                    #region old code to make it html format
+                    var text = searchResult.Document; // @"<div id='content'>" + node.InnerHtml.TrimStart('\n', '\t');
+                    
+                    
+                    // string html = $@"<meta http-equiv='Content-Type' content='text/html;charset=UTF-8'/><meta http-equiv='X-UA-Compatible' content='IE=edge'/>{text}".FixHtml();
+
+                    #endregion
                     SaveToResults(cacheId, searchResult.Document);
 
                     if (CancelSearch)
@@ -177,8 +195,10 @@ namespace WikiLeaks.Managers
                         return;
                     }
                 }
-                termStatus.Current = 0;
-                _mainWindow.UpdateUi(termStatus, "progressbar.update");
+               // termStatus.Current = 0;
+               // _mainWindow.UpdateUi(termStatus, "progressbar.update");
+
+
                 ////this will update the treeview, by default it shows the filters in the
                 ////root, so if the filter found something in an email then add/update
                 ////the email id under the filter node.
@@ -186,15 +206,118 @@ namespace WikiLeaks.Managers
                 {
                     _mainWindow.UpdateUi(searchResult, "treeview.results");
                 }
-          
 
+                // emailStatus.Current = startId;
+                //  _mainWindow.UpdateUi(emailStatus, "progressbar.update");
             }
-            emailStatus.Current = startId;
-            _mainWindow.UpdateUi(emailStatus, "progressbar.update");
+            // emailStatus.Current = startId;
+            //  _mainWindow.UpdateUi(emailStatus, "progressbar.update");
         }
 
-        protected bool SaveToResults(float leakId, string document)
+
+        public void SearchDocument(int docId)
         {
+            SearchStatus filterStatus = new SearchStatus() { ControlName = "prgFilterProgress", Start = 0,End = _filterManager.Filters.Count() - 1,Reset = true,Current = 0 };
+            
+            _mainWindow.UpdateUi(filterStatus, "progressbar.update");
+            filterStatus.Reset = false;
+            int filterIndex = 0;
+
+            //get the document
+            SearchResult searchResult = GetSearchResult(docId);
+
+            //counts how many of the search terms were found (doesn't count quantity).
+            //FilterName
+            //      1 (3) where 1 = docid, 3 = filterHitCount
+            //      This would let the user know in this document 3 of their search terms were in the document.
+            //      Letting the user know the document is probably a primary subject of the filter. 
+            int filterHitCount = 0;
+
+            foreach(Filter filter in _filterManager.Filters)
+            {
+                if (CancelSearch){  CancelSearch = false; return; }
+
+                searchResult.FilterName = filter.Name;
+
+                string[] searchTerms = filter.SearchTokens.Split(',');
+                string highlightColor = filter.HighlightColor.GetHtmlHexColor();
+              
+                SearchStatus termStatus = new SearchStatus() { ControlName = "prgSearchTerms", Start = 0, End = searchTerms.Count() - 1,Reset = true, Current = 0 };
+
+                _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                termStatus.Reset = false;
+                int termIdx = 0;
+
+                foreach (string searchTerm in searchTerms)
+                {
+                    termStatus.Current = termIdx;
+                    _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                    termIdx++;
+
+                    if (!searchResult.Document.Contains(searchTerm) || string.IsNullOrWhiteSpace(searchTerm))
+                        continue;
+
+                    // if (!searchResult.SearchTermHitCount.ContainsKey(docId.ToString() + searchTerm))
+                    //    searchResult.SearchTermHitCount.Add(docId.ToString() + filter.Name, searchTermHitCount)
+
+                    filterHitCount++; 
+                    searchResult.Document = searchResult.Document.HighlightText(searchTerm, highlightColor);
+                }
+                searchResult.ResultCount = filterHitCount;
+                _mainWindow.UpdateUi(searchResult, "treeview.results");
+
+                // searchResult.LeakHitCount
+
+               filterIndex++;
+                filterStatus.Current = filterIndex;
+                _mainWindow.UpdateUi(filterStatus, "progressbar.update");
+                filterHitCount = 0;//reset this or it will update the wrong nodes in the treeview.
+            }
+            
+            SaveToResults(docId, searchResult.Document);
+        }
+
+        /// <summary>
+        /// This is a used during the document searches. Its primary function is to 
+        /// get the document. Since a document can contain multiple search terms we
+        /// try and get it from the dictionary first, then the cache, and last download it
+        /// if needed.
+        /// </summary>
+        /// <param name="docId"></param>
+        /// <param name="fromSearchResults">by default tries to get the document from the SearchResults list.</param>
+        private SearchResult GetSearchResult(int docId)
+        {
+            SearchResult searchResult = new SearchResult();
+            searchResult.FilterName = "";
+            searchResult.ResultCount = 0;
+            searchResult.LeakId = docId;
+
+            if (_searchResults.ContainsKey(docId))
+            {   //Is it loaded? We've already docId this doc for another search term, re-use it.
+                searchResult = _searchResults[docId];
+            }
+            else if (_cacheManager.IsCached(docId))
+            {   //Is it local?
+                searchResult.Document = _cacheManager.GetCachedFile(docId);
+                searchResult.ResultCount = 0;
+                searchResult.LeakId = docId;
+                _searchResults.Add(docId, searchResult);
+            }
+            else
+            {   //Go get it.
+                searchResult.Document = DownloadDocument(docId);
+                searchResult.ResultCount = 0;
+                searchResult.LeakId = docId;
+                _searchResults.Add(docId, searchResult);
+            }
+
+            return searchResult;
+        }
+
+        protected bool SaveToResults(int leakId, string document)
+        {
+            //saves as html so we can display highlighting.
+            //
             string pathToFile = _application.Settings.ResultsFolder + leakId + ".html";
 
             try
@@ -212,87 +335,40 @@ namespace WikiLeaks.Managers
         }
 
         //html agility pack doesn't have an async function.
-        //  public async Task<string> DownloadDocument(float leakId, bool ignoreCache = false)
-        public string DownloadDocument(float leakId, bool includeAttachments, bool ignoreCache = false)
+        //  public async Task<string> DownloadDocument(int leakId, bool ignoreCache = false)
+        public string DownloadDocument(int leakId,  bool ignoreCache = false)
         {
             if (_cacheManager.IsCached(leakId) && ignoreCache)
             {
                return _cacheManager.GetCachedFile(leakId);
             }
+            string content = "";
+            string url = _application.Settings.BaseUrl + leakId.ToString();
+            try
+            {
+                WebClient client = new WebClient();
+                Stream stream = client.OpenRead(url);
+                StreamReader reader = new StreamReader(stream);
+                 content = reader.ReadToEnd();
+            }catch(Exception ex)
+            {
+
+            }
+            if (string.IsNullOrWhiteSpace(content))
+                return content;
+
+            _cacheManager.SaveToCache(leakId, content);
 
             //Since this is going in the wild I'm sure they don't want every neckbeard on earth slamming their servers.
             // 10 second delay between requests.
             //LOOK FOR ALREADY DOWNLOADED CACHE FILES! DON'T BE A DICK! 
-            Thread.Sleep(TimeSpan.FromSeconds(5));
+            Thread.Sleep(TimeSpan.FromSeconds(2));
 
-            string url = _application.Settings.BaseUrl;
-            var web = new HtmlWeb();
-           //  bool downloadAttachment = false;
-             
-
-            //TODO this is where it gets tricky cause they don't have a fractional representation of their
-            //attachements, so I'll have to research how the attachements are represented.
-            //if ((leakId % 1) != 0)
-            //{
-            //    url += Math.Floor(leakId).ToString();
-            //    downloadAttachment = true; //the leak is an attachment
-            //}
-
-            url  += leakId.ToString();
-
-             var document = web.Load(url);
-            
-            var node = document.DocumentNode.SelectSingleNode("//div[@id='content']");
-
-            if (node == null)
-            {
-                return document.DocumentNode.InnerHtml; ;
-            }
-
-            #region   Get attachments BOOKMARK LATEST I was implementing this but wanted to check in first.
-            //if (downloadAttachment || includeAttachments)
-            //{
-            //    var attachmentNode = document.DocumentNode.SelectNodes("//div[@id='attachments']//a");
-
-            //    if (attachmentNode == null)
-            //        return "";
-
-            //    foreach (var attachment in document.DocumentNode.SelectNodes("//div[@id='attachments']//a")){
-
-            //        //var match = _attachmentRegex.Match(attachment.InnerHtml);
-
-            //        //    if (match.Success){
-            //        //        Attachments.Add(new Attachment{
-            //        //            FileName = match.Groups["FileName"].Value,
-            //        //            FileSize = match.Groups["FileSize"].Value,
-            //        //            Href = attachment.Attributes["href"].Value,
-            //        //            ImageType = match.Groups["ImageType"].Value
-            //        //        });
-            //        //    }
-            //        //    else{
-            //        //        Attachments.Add(new Attachment{
-            //        //            Href = attachment.Attributes["href"].Value
-            //        //        });
-            //        //    }
-            //    }
-
-            //}
-                #endregion
-
-           var text = @"<div id='content'>" + node.InnerHtml.TrimStart('\n', '\t');
-
-            text = text.Replace("\n\t\t\t\t\n\t\t\t\t<header>", "<header>");
-            text = text.Replace("</h2>\n\t\t\t\t", "</h2>");
-            text = text.Replace("</header>\n\n\n\n\t\t\t\t", "</header>");
-            text = text.Replace("sh\">\n\t\t\t\t\t\t\n\t\t\t\t\t\t", "sh\">");
-
-            string html = $@"<meta http-equiv='Content-Type' content='text/html;charset=UTF-8'/><meta http-equiv='X-UA-Compatible' content='IE=edge'/>{text}".FixHtml();
-            _cacheManager.SaveToCache(leakId, html);
-            return html;
+            return content;
         }
 
 
-        public string GetResultFile(float leakId) {
+        public string GetResultFile(int leakId) {
 
             if (_searchResults.ContainsKey(leakId))
                 return _searchResults[leakId].Document;
@@ -315,5 +391,44 @@ namespace WikiLeaks.Managers
         }
 
 
+        public MimeMessage GetCachedEmail(int leakId)
+        {
+            MimeMessage msg = null;
+            string pathToFile = Path.Combine( _application.Settings.CacheFolder , leakId + ".eml");
+
+            if (!File.Exists(pathToFile))
+            {
+                _mainWindow.UpdateUi("Invalid file: " + pathToFile, "messagebox.show");
+                return msg;
+            }
+            
+            try
+            {
+                 msg = MimeMessage.Load(pathToFile); //.Load(stream);
+           
+
+            }
+            catch(Exception ex)
+            {
+                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+            }
+            return msg;
+        }
+
+
+        private void GetAttachments(MimeMessage message)
+        {
+
+        //    foreach (var mimeEntity in message.BodyParts)
+        //    {
+
+        //        var attachment = Attachment.Load(mimeEntity);
+
+        //        if (attachment != null)
+        //        {
+        //            Attachments.Add(attachment);
+        //        }
+        //    }
+        }
     }
 }

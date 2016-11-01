@@ -15,7 +15,7 @@ namespace WikiLeaks.Managers
         string _cacheFolder = EnvironmentEx.AppDataFolder;
 
         public bool CacheIdsLoaded { get; set; }
-        //Made this a float so we can save attachment files as
+        //Made this a int so we can save attachment files as
         //the decimal portion in the order they are loaded.
         //example email id = 25001 has two attachments (hypothetically).
         //25001.1.<fileext> would be first attachment
@@ -23,7 +23,7 @@ namespace WikiLeaks.Managers
         //May have to figure out where ( in \attachments sub-folder?) to store non text attachments.
         //put reference data in json file for these non text attachments?
         //
-        public List<float>  CacheIds { get; set; }
+        public List<int>  CacheIds { get; set; }
 
         public CacheManager(MainWindow wnd, string pathToFolder)
         {
@@ -32,7 +32,7 @@ namespace WikiLeaks.Managers
             if(string.IsNullOrWhiteSpace(pathToFolder))
                 pathToFolder = EnvironmentEx.AppDataFolder + "\\Cache\\";
 
-            CacheIds = new List<float>();
+            CacheIds = new List<int>();
 
             CacheIdsLoaded = false;
             if (!string.IsNullOrWhiteSpace(pathToFolder) && Directory.Exists(pathToFolder))
@@ -51,15 +51,15 @@ namespace WikiLeaks.Managers
             foreach (string pathToFile in fileEntries)
             {
                string fileRoot = Path.GetFileNameWithoutExtension(pathToFile);
-               float fileId;
+               int fileId;
 
-               if(float.TryParse(fileRoot,out fileId ))
+               if(int.TryParse(fileRoot,out fileId ))
                     CacheIds.Add(fileId);
             }
             CacheIdsLoaded = true;
         }
 
-        public bool IsCached(float leakId)
+        public bool IsCached(int leakId)
         {
             if(!CacheIdsLoaded)
                 LoadCache();
@@ -67,16 +67,9 @@ namespace WikiLeaks.Managers
             return CacheIds.Where(w => w == leakId).Count() > 0 ? true : false;
         }
 
-        public string GetCachedFile(float leakId)
+        public string GetCachedFile(int leakId)
         {
-            string pathToFile = _cacheFolder;
-
-            if ((leakId % 1) != 0)
-            {
-                pathToFile += "Attachments\\";
-            }
-
-            pathToFile += leakId.ToString() + ".html";
+            string pathToFile = _cacheFolder + leakId.ToString() + ".eml";
 
             if (!File.Exists(pathToFile))
                 return "";
@@ -86,20 +79,13 @@ namespace WikiLeaks.Managers
         }
 
 
-        public bool SaveToCache(float leakId ,string documentBody)
+        public bool SaveToCache(int leakId ,string document)
         {
-            string pathToFile = _cacheFolder;
-
-            if ((leakId % 1) != 0)
-            {
-                pathToFile += "Attachments\\";
-            }
-
-            pathToFile += leakId.ToString() + ".html";
+            string pathToFile = _cacheFolder + leakId.ToString() + ".eml";
 
             try
             {
-                File.WriteAllText(pathToFile, documentBody);
+                File.WriteAllText(pathToFile, document);
                 CacheIds.Add(leakId);
             }
             catch(Exception ex)
