@@ -119,13 +119,15 @@
                     <Label x:Name="lblLeakEndIdSetting" Content="End ID" HorizontalAlignment="Left" Margin="26,7,0,0" VerticalAlignment="Top" Grid.Column="4"/>
                     <TextBox x:Name="txtLeakStartIdSetting" HorizontalAlignment="Left" Height="23" Margin="8,30,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.ColumnSpan="5"/>
                     <TextBox x:Name="txtLeakEndIdSetting" HorizontalAlignment="Left" Height="23" Margin="26,30,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.Column="4"/>
-                    <Button x:Name="btnSaveAppSettings" Content="Save" HorizontalAlignment="Left" Margin="0,272,0,0" VerticalAlignment="Top" Width="75" Click="btnSaveAppSettings_Click" Grid.Column="1"/>
+                    <Button x:Name="btnSaveAppSettings" Content="Save" HorizontalAlignment="Left" Margin="0,320,0,0" VerticalAlignment="Top" Width="75" Click="btnSaveAppSettings_Click" Grid.Column="1"/>
                     <Label x:Name="lblCacheFolder" Content="Cache Folder" HorizontalAlignment="Left" Margin="0,110,0,0" VerticalAlignment="Top" Grid.Column="1"/>
                     <TextBox x:Name="txtCachFolder" HorizontalAlignment="Left" Height="23" Margin="8,133,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="876" Grid.ColumnSpan="5"/>
-                    <Label x:Name="lblSearchResultsFolder" Content="Search Results" Grid.Column="1" HorizontalAlignment="Left" Margin="0,161,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.23,-0.161"/>
-                    <TextBox x:Name="txtSearchResultsFolder" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,184,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872" Grid.ColumnSpan="4"/>
-                    <Label x:Name="lblFilterFolder" Content="Filters" Grid.Column="1" HorizontalAlignment="Left" Margin="2,212,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.417,0.217"/>
-                    <TextBox x:Name="txtFilterFolder" Grid.ColumnSpan="4" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,235,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="870"/>
+                    <Label x:Name="lblSearchResultsFolder" Content="Search Results" Grid.Column="1" HorizontalAlignment="Left" Margin="0,202,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.23,-0.161"/>
+                    <TextBox x:Name="txtSearchResultsFolder" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,225,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872" Grid.ColumnSpan="4"/>
+                    <Label x:Name="lblFilterFolder" Content="Filters" Grid.Column="1" HorizontalAlignment="Left" Margin="2,253,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.417,0.217"/>
+                    <TextBox x:Name="txtFilterFolder" Grid.ColumnSpan="4" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,276,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872"/>
+                    <Label x:Name="lblAttachmentsFolder" Content="Attachments" Grid.Column="1" HorizontalAlignment="Left" Margin="2,157,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="txtAttachemtsFolder" Grid.ColumnSpan="4" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,177,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Filters" Margin="-92,0,65,-4">
@@ -156,8 +158,8 @@
                     <TextBox x:Name="txtFilterHighlightColor" Grid.Column="1" HorizontalAlignment="Right" Height="23" Margin="0,31,754,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.ColumnSpan="4"/>
                     <Label x:Name="lblFilterHighlightColor" Content="Highlight Color" Grid.Column="1" HorizontalAlignment="Left" Margin="10,6,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
                     <Button x:Name="btnDeleteFilter" Content="Delete" Grid.Column="4" HorizontalAlignment="Left" Margin="674,58,0,0" VerticalAlignment="Top" Width="75" Click="btnDeleteFilter_Click"/>
-                    <Button x:Name="btnSaveFilter" Content="Save" Grid.Column="4" HorizontalAlignment="Left" Margin="271,58,0,0" VerticalAlignment="Top" Width="75" Click="btnSaveFilter_Click" RenderTransformOrigin="0.403,-0.871"/>
-                    <Button x:Name="btnAddFilter" Content="Add" Grid.Column="4" HorizontalAlignment="Left" Margin="479,58,0,0" VerticalAlignment="Top" Width="75" Click="btnAddFilter_Click"/>
+                    <Button x:Name="btnSaveFilter" Content="Save" Grid.Column="4" HorizontalAlignment="Left" Margin="570,58,0,0" VerticalAlignment="Top" Width="75" Click="btnSaveFilter_Click" RenderTransformOrigin="0.403,-0.871"/>
+                    <Button x:Name="btnAddFilter" Content="Add" Grid.Column="4" HorizontalAlignment="Left" Margin="490,58,0,0" VerticalAlignment="Top" Width="75" Click="btnAddFilter_Click"/>
                 </Grid>
             </TabItem>
 
@@ -183,6 +185,14 @@
         <ProgressBar x:Name="prgFilterProgress" HorizontalAlignment="Left" Height="10" Margin="55,22,0,0" VerticalAlignment="Top" Width="214" Grid.Row="1" Grid.ColumnSpan="2"/>
         <Label x:Name="lblSearchTermsProgress" Content="Terms:" HorizontalAlignment="Left" Margin="10,28,0,0" Grid.Row="1" VerticalAlignment="Top"/>
         <ProgressBar x:Name="prgSearchTerms" HorizontalAlignment="Left" Height="10" Margin="55,37,0,0" Grid.Row="1" VerticalAlignment="Top" Width="214" Grid.ColumnSpan="2"/>
+        <TextBox x:Name="txtDetails" Grid.Column="1" HorizontalAlignment="Left" Height="75" Margin="198,5,0,0" Grid.Row="1" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="499"/>
+        <ListView x:Name="lstAttachments" SelectionChanged="lstAttachments_SelectionChanged"  Grid.Column="1" HorizontalAlignment="Left" Height="74" Margin="702,5,0,0" Grid.Row="1" VerticalAlignment="Top" Width="400">
+            <ListView.View>
+                <GridView >
+                    <GridViewColumn Header="File Name"   DisplayMemberBinding="{Binding FileName}"  />
+                </GridView>
+            </ListView.View>
+        </ListView>
 
     </Grid>
 </Window>

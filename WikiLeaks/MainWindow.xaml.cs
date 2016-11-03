@@ -7,12 +7,14 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using WikiLeaks.Abstract;
+using WikiLeaks.Extensions;
 using WikiLeaks.Managers;
 using WikiLeaks.Models;
 
@@ -144,7 +146,20 @@ namespace WikiLeaks
                 MessageBox.Show("Could not create filter folder. " + ex.Message);
                 return;
             }
-            _application.Settings.FilterFolder = tmp;
+
+            tmp = this.txtAttachemtsFolder.Text.Trim();
+            try
+            {
+                if (!Directory.Exists(tmp))
+                    Directory.CreateDirectory(tmp);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not create attachments folder. " + ex.Message);
+                return;
+            }
+
+            _application.Settings.AttachemtsFolder = tmp;
             _application.SaveSettings("");
         }
         #endregion
@@ -304,115 +319,67 @@ namespace WikiLeaks
 
             tvwSearchResults.Items.Clear();
 
-            //show files from results folder
-            // 
-            string[] fileEntries = Directory.GetFiles(_application.Settings.ResultsFolder, "*.html", System.IO.SearchOption.AllDirectories);
-
-            List<int> fileNumbers = new List<int>();
-
-            foreach (string pathToFile in fileEntries)
-            {
-                string file = Path.GetFileNameWithoutExtension(pathToFile);
-                try
-                {
-                    fileNumbers.Add(int.Parse(file));
-                }
-                catch { }
-
-            }
-            fileNumbers.Sort();
-
-            foreach (int fileNumber in fileNumbers)
-            {
-                TreeViewItem node = new TreeViewItem();
-                node.Header = fileNumber.ToString();
-                node.Tag = node.Header;
-                tvwSearchResults.Items.Add(node);
-            }
-
+            string directory = _application.Settings.ResultsFolder;
+            int batchSize = 500;
+            tvwSearchResults.Items.Clear();
+            LoadTreeWithFiles(directory, "*.html", batchSize);
         }
 
         private void rdoCacheView_Click(object sender, RoutedEventArgs e)
         {
             _viewState = "CacheView";
+            string directory = _application.Settings.CacheFolder;
+            int batchSize = 500;
+            tvwSearchResults.Items.Clear();
+            LoadTreeWithFiles(directory, "*.eml", batchSize);
+        }
 
+        private void LoadTreeWithFiles(string directory, string fileType, int batchSize)
+        {
+            System.Threading.Thread t1 = new System.Threading.Thread
+            (delegate ()
+            {
+                string[] fileEntries = Directory.GetFiles(directory, fileType, System.IO.SearchOption.AllDirectories);
 
-            //System.Threading.Thread t1 = new System.Threading.Thread
-            //(delegate ()
-            //{
-               
+                List<int> fileNumbers = new List<int>();
 
-                Dispatcher.BeginInvoke(new Action(() =>
+                foreach (string pathToFile in fileEntries)
                 {
-                    //show files from cache
-                    tvwSearchResults.Items.Clear();
-
-                    //show files from results folder
-                    // 
-                    string[] fileEntries = Directory.GetFiles(_application.Settings.CacheFolder, "*.eml", System.IO.SearchOption.AllDirectories);
-
-                    List<int> fileNumbers = new List<int>();
-
-                    foreach (string pathToFile in fileEntries)
+                    string file = Path.GetFileNameWithoutExtension(pathToFile);
+                    try
                     {
+                        fileNumbers.Add(int.Parse(file));
+                    }
+                    catch { }
 
-                        string file = Path.GetFileNameWithoutExtension(pathToFile);
-                        try
+                }
+                fileNumbers.Sort();
+
+                var batches = fileNumbers.Batch(batchSize);
+
+                //root nodes
+                foreach (var batch in batches)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        string label = batch.ElementAt(0).ToString() + "-" + batch.ElementAt(batch.Count() - 1).ToString();
+                        TreeViewItem rootNode = new TreeViewItem();
+                        rootNode.Header = label;
+                        rootNode.Tag = rootNode.Header;
+                        tvwSearchResults.Items.Add(rootNode);
+
+                        //TODO move this to node expanded event
+                        foreach (var fileNum in batch)
                         {
-                            fileNumbers.Add(int.Parse(file));
+                            TreeViewItem node = new TreeViewItem();
+                            node.Header = fileNum.ToString();
+                            node.Tag = node.Header;
+                            rootNode.Items.Add(node);
                         }
-                        catch { }
-
-                    }
-                    fileNumbers.Sort();
-
-                    foreach (int fileNumber in fileNumbers)
-                    {
-                        TreeViewItem node = new TreeViewItem();
-                        node.Header = fileNumber.ToString();
-                        node.Tag = node.Header;
-                        tvwSearchResults.Items.Add(node);
-                    }
-
-                }));
-
-            //});
-            //t1.Start();
-
-
-        
-            ////show files from cache
-            //tvwSearchResults.Items.Clear();
-
-            ////show files from results folder
-            //// 
-            //string[] fileEntries = Directory.GetFiles(_application.Settings.CacheFolder, "*.eml", System.IO.SearchOption.AllDirectories);
-
-            //List<int> fileNumbers = new List<int>();
-
-            //foreach (string pathToFile in fileEntries)
-            //{
-                
-            //    string file = Path.GetFileNameWithoutExtension(pathToFile);
-            //    try
-            //    {
-            //        fileNumbers.Add(int.Parse(file));
-            //    }
-            //    catch { }
-            
-            //}
-            //fileNumbers.Sort();
-
-            //foreach (int fileNumber in fileNumbers)
-            //{
-            //    TreeViewItem node = new TreeViewItem();
-            //    node.Header = fileNumber.ToString();
-            //    node.Tag = node.Header;
-            //    tvwSearchResults.Items.Add(node);
-            //}
-
-          
-
+                    }));
+                }
+            });
+            t1.Start();
         }
 
         private void rdoAttachmentsView_Click(object sender, RoutedEventArgs e)
@@ -508,6 +475,7 @@ namespace WikiLeaks
         private void tvwSearchResults_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             TreeViewItem tvi = null;
+            lstAttachments.ItemsSource = null;
 
             if (e.NewValue is TreeViewItem)
                 tvi = (TreeViewItem)e.NewValue;
@@ -521,8 +489,10 @@ namespace WikiLeaks
             if (!int.TryParse(nodeName, out emailId))
                 return;
 
+            MimeMessage msg = _documentManager.GetCachedEmail(emailId);
             string pathToFile = "";
-            MimeMessage msg = null;
+            string details = "";
+            Dispatcher.BeginInvoke((Action)(() => tabControl.SelectedIndex = 0));
 
             switch (_viewState)
             {
@@ -531,31 +501,79 @@ namespace WikiLeaks
                     pathToFile = Path.Combine(  _application.Settings.ResultsFolder, nodeName + ".html" );
                     //show the email
                     this.WebBrowser.Navigate(pathToFile);
-                    Dispatcher.BeginInvoke((Action)(() => tabControl.SelectedIndex = 0));
-
-                    msg = _documentManager.GetCachedEmail(emailId);
-
-                    //msg.Verify()
-                    //
-                    //From = message.From;
-                    //To = message.To;
-                    //Cc = message.Cc;
-                    //Subject = message.Subject;
-                    //Date = message.Date;
-                    //message.TextBody.Replace("\r\n", "<br/>") : message.HtmlBody;
-
                     break;
                 case "CacheView":
-                    msg = _documentManager.GetCachedEmail(emailId);
                     if (msg == null)
                         return;
                     this.WebBrowser.NavigateToString(msg.HtmlBody);
-
                     break;
+            }
+
+            if (msg == null)
+                return;
+
+            details = "From:" + String.Join(";", msg.From) + Environment.NewLine;
+            details += "To:" + msg.To + Environment.NewLine; ;
+            details += "Cc:" + msg.Cc + Environment.NewLine; ;
+            details += "Subject:" + msg.Subject + Environment.NewLine; ;
+            details += "Date:" + msg.Date + Environment.NewLine;
+            //msg.Verify()
+            txtDetails.Text = details;
+            lstAttachments.ItemsSource = _documentManager.GetAttachments(msg);
+        }
+
+        private void lstAttachments_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            Attachment a = (Attachment)lstAttachments.SelectedItem;
+
+            if (a == null|| a.FileName.ContainsAny(".bat",".exe.", ".com"  ))//todo add attachment black list
+            {
+                return;
+            }
+            int leakId = 0;
+            string nodeName = "";
+
+            if (tvwSearchResults.SelectedItem is TreeViewItem)
+            {
+                TreeViewItem tvi = (TreeViewItem)tvwSearchResults.SelectedItem;
+
+                if (tvi == null)
+                    return;
+
+                 nodeName = tvi.Tag?.ToString();
+            }
+
+            if (!int.TryParse(nodeName, out leakId))
+                return;
+
+            MimeMessage msg = _documentManager.GetCachedEmail(leakId);
+
+            if (msg == null)
+                return;
+
+            List<Attachment> attachments = _documentManager.GetAttachments(msg);
+            foreach(Attachment attachment in attachments)
+            {
+                if (attachment.FileName != a.FileName )
+                    continue;
+
+                if (!_documentManager.SaveAttachment(leakId, attachment))
+                    return;
+
+                break;
+            }
+
+            string pathToFile = Path.Combine(_application.Settings.AttachemtsFolder, leakId.ToString(), a.FileName);
+            try
+            {
+                System.Diagnostics.Process.Start(pathToFile);
+            }
+            catch(Exception ex)
+            {
+                UpdateUi(ex.Message, "messagebox.show");
             }
         }
 
-    
 
         #endregion
 
@@ -680,6 +698,6 @@ namespace WikiLeaks
             }
         }
 
-  
+      
     }
 }

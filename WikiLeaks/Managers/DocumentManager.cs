@@ -27,7 +27,8 @@ namespace WikiLeaks.Managers
         private FilterManager _filterManager = null;
         private CacheManager _cacheManager = null;
         private MainWindow _mainWindow = null;
-        private readonly Regex _attachmentRegex = new Regex("</span>(?<FileName>.+)<br><small>(?<FileSize>.+)<br>(?<ImageType>.+)</small>");
+
+        
 
         public bool CancelSearch{ get; set; }
         private Dictionary<int, SearchResult> _searchResults = new Dictionary<int, SearchResult>();
@@ -352,7 +353,7 @@ namespace WikiLeaks.Managers
                  content = reader.ReadToEnd();
             }catch(Exception ex)
             {
-
+                //todo log this. It's usually a timeout error.
             }
             if (string.IsNullOrWhiteSpace(content))
                 return content;
@@ -366,7 +367,6 @@ namespace WikiLeaks.Managers
 
             return content;
         }
-
 
         public string GetResultFile(int leakId) {
 
@@ -389,7 +389,6 @@ namespace WikiLeaks.Managers
             return File.ReadAllText(pathToFile);
            
         }
-
 
         public MimeMessage GetCachedEmail(int leakId)
         {
@@ -415,20 +414,44 @@ namespace WikiLeaks.Managers
             return msg;
         }
 
-
-        private void GetAttachments(MimeMessage message)
+        public List<Attachment> GetAttachments(MimeMessage message)
         {
+            List<Attachment> lst = new List<Attachment>();
 
-        //    foreach (var mimeEntity in message.BodyParts)
-        //    {
+            if (message == null)
+                return lst;
 
-        //        var attachment = Attachment.Load(mimeEntity);
+            foreach (var mimeEntity in message.BodyParts)
+            {
+                var attachment = Attachment.Load(mimeEntity);
 
-        //        if (attachment != null)
-        //        {
-        //            Attachments.Add(attachment);
-        //        }
-        //    }
+                if (attachment == null)
+                    continue;
+
+                lst.Add(attachment);
+            
+             }
+            return lst;
+        }
+
+        public bool SaveAttachment( int leakId, Attachment  a)
+        {
+            string pathToFile = Path.Combine(_application.Settings.AttachemtsFolder, leakId.ToString(), a.FileName);
+
+            try
+            {
+                string directory = Path.GetDirectoryName(pathToFile);
+
+                if (!Directory.Exists(directory))
+                    Directory.CreateDirectory(directory);
+
+                File.WriteAllBytes(pathToFile, a.Data);
+            }catch(Exception ex)
+            {
+                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                return false;
+            }
+            return true;
         }
     }
 }

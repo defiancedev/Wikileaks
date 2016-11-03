@@ -28,5 +28,7 @@ namespace WikiLeaks.Models
         public string FilterFolder { get; set; }
 
         public string ResultsFolder { get; set; }
+
+        public string AttachemtsFolder { get; set; }
     }
 }
