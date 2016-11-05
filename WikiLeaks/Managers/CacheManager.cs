@@ -91,7 +91,7 @@ namespace WikiLeaks.Managers
             catch(Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
             return true;

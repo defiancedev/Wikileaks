@@ -54,6 +54,10 @@
                     <Setter Property="TextWrapping" Value="WrapWithOverflow"/>
                 </Style>
             </Grid.Resources>
+            <TreeView x:Name="tvwResultsFolder" SelectedItemChanged="tvwResultsFolder_SelectedItemChanged"  Visibility="Hidden" Grid.Column="1" HorizontalAlignment="Left" Height="20" Margin="250,36,0,-52" Grid.Row="4" VerticalAlignment="Top" Width="15"/>
+            <TreeView x:Name="tvwCacheFolder" SelectedItemChanged="tvwCacheFolder_SelectedItemChanged" Visibility="Hidden" Grid.Column="1" HorizontalAlignment="Left" Height="19" Margin="5,587,0,-564" Grid.Row="4" VerticalAlignment="Top" Width="18" RenderTransformOrigin="-0.111,0.947"/>
+            <Label x:Name="lblEmailSearchProgress" Content="Email Search" Grid.Column="1" HorizontalAlignment="Left" Margin="-12,613,0,-556" Grid.Row="4" VerticalAlignment="Top"/>
+            <Button x:Name="btnRefreshTreeView" Click="btnRefreshTreeView_Click" Content="Refresh" Grid.Column="1" HorizontalAlignment="Left" Margin="155,47,0,0" Grid.Row="4" VerticalAlignment="Top" Width="75"/>
 
         </Grid>
         <ListBox Visibility="Hidden" Grid.Row="2" ItemsSource="{Binding Attachments}" Grid.ColumnSpan="2" >
@@ -106,28 +110,36 @@
             </TabItem>
             <TabItem Header="App Settngs" HorizontalAlignment="Right" Width="90" Margin="0,0,-80,-4">
                 <Grid Background="#FFE5E5E5">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="10*"/>
-                        <ColumnDefinition Width="75*"/>
-                        <ColumnDefinition Width="19*"/>
-                        <ColumnDefinition Width="19*"/>
-                        <ColumnDefinition Width="771*"/>
-                    </Grid.ColumnDefinitions>
                     <Label x:Name="lblBaseUrlSetting" Content="Base URL" HorizontalAlignment="Left" Margin="0,59,0,0" VerticalAlignment="Top" Grid.Column="1"/>
                     <TextBox x:Name="txtBaseUrlSetting" HorizontalAlignment="Left" Height="23" Margin="0,82,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872" Grid.ColumnSpan="4" Grid.Column="1" />
                     <Label x:Name="lblLeakStartIdSetting" Content="Start ID" HorizontalAlignment="Left" Margin="7,7,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
-                    <Label x:Name="lblLeakEndIdSetting" Content="End ID" HorizontalAlignment="Left" Margin="26,7,0,0" VerticalAlignment="Top" Grid.Column="4"/>
+                    <Label x:Name="lblLeakEndIdSetting" Content="End ID" HorizontalAlignment="Left" Margin="144,7,0,0" VerticalAlignment="Top"/>
                     <TextBox x:Name="txtLeakStartIdSetting" HorizontalAlignment="Left" Height="23" Margin="8,30,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.ColumnSpan="5"/>
-                    <TextBox x:Name="txtLeakEndIdSetting" HorizontalAlignment="Left" Height="23" Margin="26,30,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.Column="4"/>
-                    <Button x:Name="btnSaveAppSettings" Content="Save" HorizontalAlignment="Left" Margin="0,320,0,0" VerticalAlignment="Top" Width="75" Click="btnSaveAppSettings_Click" Grid.Column="1"/>
+                    <TextBox x:Name="txtLeakEndIdSetting" HorizontalAlignment="Left" Height="23" Margin="144,30,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
+                    <Button x:Name="btnSaveAppSettings" Content="Save" HorizontalAlignment="Left" Margin="797,542,0,0" VerticalAlignment="Top" Width="75" Click="btnSaveAppSettings_Click"/>
                     <Label x:Name="lblCacheFolder" Content="Cache Folder" HorizontalAlignment="Left" Margin="0,110,0,0" VerticalAlignment="Top" Grid.Column="1"/>
-                    <TextBox x:Name="txtCachFolder" HorizontalAlignment="Left" Height="23" Margin="8,133,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="876" Grid.ColumnSpan="5"/>
+                    <TextBox x:Name="txtCachFolder" HorizontalAlignment="Left" Height="23" Margin="0,133,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="884"/>
                     <Label x:Name="lblSearchResultsFolder" Content="Search Results" Grid.Column="1" HorizontalAlignment="Left" Margin="0,202,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.23,-0.161"/>
                     <TextBox x:Name="txtSearchResultsFolder" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,225,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872" Grid.ColumnSpan="4"/>
                     <Label x:Name="lblFilterFolder" Content="Filters" Grid.Column="1" HorizontalAlignment="Left" Margin="2,253,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.417,0.217"/>
                     <TextBox x:Name="txtFilterFolder" Grid.ColumnSpan="4" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,276,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872"/>
                     <Label x:Name="lblAttachmentsFolder" Content="Attachments" Grid.Column="1" HorizontalAlignment="Left" Margin="2,157,0,0" VerticalAlignment="Top"/>
                     <TextBox x:Name="txtAttachemtsFolder" Grid.ColumnSpan="4" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="0,177,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="872"/>
+                    <GroupBox x:Name="grpAgentR" Header="                           " HorizontalAlignment="Left" Margin="2,332,0,0" VerticalAlignment="Top" Height="175" Width="892">
+                        <Grid HorizontalAlignment="Left" Height="155" VerticalAlignment="Top" Width="892" Margin="0,0,-12,0" >
+                            <Label x:Name="lblPathToAgentExe" Content="Agent Path" HorizontalAlignment="Left" Margin="0,4,0,0" VerticalAlignment="Top" RenderTransformOrigin="-2.389,-0.522"/>
+                            <TextBox x:Name="txtAgentExePath" HorizontalAlignment="Left" Height="23" Margin="0,27,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="882"/>
+                            <Label x:Name="lblAgentSearchFolder" Content="Search Folder" HorizontalAlignment="Left" Margin="0,54,0,0" VerticalAlignment="Top"/>
+                            <TextBox x:Name="txtAgentSearchFolder" HorizontalAlignment="Left" Height="23" Margin="0,75,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="882"/>
+                            <TextBlock Margin="0,145,441,-3" TextWrapping="Wrap">
+                                    *This feature requires installing <Hyperlink RequestNavigate="Hyperlink_RequestNavigate"  NavigateUri="https://www.mythicsoft.com/agentransack/download"> Agent Ransack.</Hyperlink>
+                            </TextBlock>
+                            <Label x:Name="lblAgentSearchFileType" Content="File Type" HorizontalAlignment="Left" Margin="1,97,0,0" VerticalAlignment="Top"/>
+                            <TextBox x:Name="txtAgentSearchFileType" HorizontalAlignment="Left" Height="23" Margin="0,117,0,0" TextWrapping="Wrap" Text="*.*" VerticalAlignment="Top" Width="63"/>
+                        </Grid>
+
+                    </GroupBox>
+                    <CheckBox x:Name="chkUseAgentSettings" Content="Agent Settings*" HorizontalAlignment="Left" Margin="14,332,0,0" VerticalAlignment="Top"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Filters" Margin="-92,0,65,-4">
@@ -170,21 +182,20 @@
         <Label x:Name="lblLeakEndId" Content="End ID" HorizontalAlignment="Left" Margin="45,1,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.814,0.609" Height="23" Width="43" Grid.Column="1"/>
         <TextBox x:Name="txtLeakStartId" HorizontalAlignment="Left" Height="23" Margin="10,24,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.ColumnSpan="2"/>
         <TextBox x:Name="txtLeakEndId" HorizontalAlignment="Left" Height="23" Margin="45,24,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.Column="1"/>
-        <TreeView x:Name="tvwSearchResults"    SelectedItemChanged="tvwSearchResults_SelectedItemChanged" HorizontalAlignment="Left" Height="518" Margin="10,70,0,0" VerticalAlignment="Top" Width="259" Grid.ColumnSpan="2">
+        <TreeView x:Name="tvwSearchResults"    SelectedItemChanged="tvwSearchResults_SelectedItemChanged" HorizontalAlignment="Left" Height="518" Margin="10,70,0,0" VerticalAlignment="Top" Width="259" Grid.ColumnSpan="2"></TreeView>
 
-        </TreeView>
         <Button x:Name="btnSearch" Content="Search"  HorizontalAlignment="Left" Margin="104,593,0,0" VerticalAlignment="Top" Width="75" Click="btnSearch_Click" Height="20" Grid.Column="1"/>
         <Button x:Name="btnCancelSearch" Content="Cancel" HorizontalAlignment="Left" Margin="11,593,0,0" VerticalAlignment="Top" Width="75" Click="btnCancelSearch_Click" Height="20" Grid.Column="1"/>
         <RadioButton x:Name="rdoFilterView"  Click="rdoFilterView_Click" GroupName="ResultView" Content="Filters" HorizontalAlignment="Left" Margin="10,52,0,0" VerticalAlignment="Top" RenderTransformOrigin="-1.5,-4.231" Height="13" Width="44"/>
         <RadioButton x:Name="rdoResultsView" Click="rdoResultsView_Click" GroupName="ResultView" Content="Results" HorizontalAlignment="Left" Margin="59,52,0,0" VerticalAlignment="Top" Height="13" Width="50" Grid.ColumnSpan="2"/>
         <RadioButton x:Name="rdoCacheView"   Click="rdoCacheView_Click" GroupName="ResultView" Content="Cache" HorizontalAlignment="Left" Margin="24,52,0,0" VerticalAlignment="Top" Height="13" Width="44" Grid.Column="1"/>
-        <RadioButton x:Name="rdoAttachmentsView" Click="rdoAttachmentsView_Click"   GroupName="ResultView" Content="Attachments" HorizontalAlignment="Left" Margin="76,52,0,0" VerticalAlignment="Top" Height="13" Width="76" Grid.Column="1"/>
-        <ProgressBar x:Name="prgEmailProgress"  HorizontalAlignment="Left" Height="9" Margin="55,10,0,0" VerticalAlignment="Top" Width="214" Grid.Row="1" Grid.ColumnSpan="2"/>
-        <Label x:Name="lblEmailProgress" Content="Emails:" HorizontalAlignment="Left" Margin="9,2,0,0" Grid.Row="1" VerticalAlignment="Top" Height="23" Width="45"/>
-        <Label x:Name="lblFilterProgress" Content="Filters:" HorizontalAlignment="Left" Margin="10,14,0,0" VerticalAlignment="Top" Height="23" Width="43" Grid.Row="1"/>
-        <ProgressBar x:Name="prgFilterProgress" HorizontalAlignment="Left" Height="10" Margin="55,22,0,0" VerticalAlignment="Top" Width="214" Grid.Row="1" Grid.ColumnSpan="2"/>
-        <Label x:Name="lblSearchTermsProgress" Content="Terms:" HorizontalAlignment="Left" Margin="10,28,0,0" Grid.Row="1" VerticalAlignment="Top"/>
-        <ProgressBar x:Name="prgSearchTerms" HorizontalAlignment="Left" Height="10" Margin="55,37,0,0" Grid.Row="1" VerticalAlignment="Top" Width="214" Grid.ColumnSpan="2"/>
+        <RadioButton x:Name="rdoAttachmentsView" Visibility="Hidden"   GroupName="ResultView" Content="Attachments" HorizontalAlignment="Left" Margin="76,52,0,0" VerticalAlignment="Top" Height="13" Width="76" Grid.Column="1"/>
+        <ProgressBar x:Name="prgEmailProgress"  HorizontalAlignment="Left" Height="9" Margin="40,21,0,0" VerticalAlignment="Top" Width="229" Grid.Row="1" Grid.ColumnSpan="2"/>
+        <Label x:Name="lblEmailProgress" Content="Emails:" HorizontalAlignment="Left" Margin="-1,13,0,0" Grid.Row="1" VerticalAlignment="Top" Height="23" Width="45"/>
+        <Label x:Name="lblFilterProgress" Content="Filters:" HorizontalAlignment="Left" Margin="0,26,0,0" VerticalAlignment="Top" Height="23" Width="43" Grid.Row="1"/>
+        <ProgressBar x:Name="prgFilterProgress" HorizontalAlignment="Left" Height="10" Margin="40,35,0,0" VerticalAlignment="Top" Width="95" Grid.Row="1" Grid.ColumnSpan="2"/>
+        <Label x:Name="lblSearchTermsProgress" Content="Terms:" HorizontalAlignment="Left" Margin="47,27,0,0" Grid.Row="1" VerticalAlignment="Top" Grid.Column="1"/>
+        <ProgressBar x:Name="prgSearchTerms" HorizontalAlignment="Left" Height="10" Margin="88,35,0,0" Grid.Row="1" VerticalAlignment="Top" Width="94" Grid.Column="1"/>
         <TextBox x:Name="txtDetails" Grid.Column="1" HorizontalAlignment="Left" Height="75" Margin="198,5,0,0" Grid.Row="1" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="499"/>
         <ListView x:Name="lstAttachments" SelectionChanged="lstAttachments_SelectionChanged"  Grid.Column="1" HorizontalAlignment="Left" Height="74" Margin="702,5,0,0" Grid.Row="1" VerticalAlignment="Top" Width="400">
             <ListView.View>
@@ -193,6 +204,11 @@
                 </GridView>
             </ListView.View>
         </ListView>
+        <Label x:Name="lblFolderSearch" Content="Folder Search" HorizontalAlignment="Left" Margin="0,47,0,0" Grid.Row="1" VerticalAlignment="Top" Grid.ColumnSpan="2" Width="89"/>
+        <Label x:Name="lblFolderFilters" Content="Filters:" HorizontalAlignment="Left" Margin="0,62,0,0" Grid.Row="1" VerticalAlignment="Top"/>
+        <ProgressBar x:Name="prgFolderFilter" HorizontalAlignment="Left" Height="10" Margin="40,69,0,0" Grid.Row="1" VerticalAlignment="Top" Width="95" Grid.ColumnSpan="2"/>
+        <Label x:Name="lblFolderTerms" Content="Terms:" Grid.Column="1" HorizontalAlignment="Left" Margin="47,62,0,0" Grid.Row="1" VerticalAlignment="Top"/>
+        <ProgressBar x:Name="prgFolderTerms" Grid.Column="1" HorizontalAlignment="Left" Height="10" Margin="88,69,0,0" Grid.Row="1" VerticalAlignment="Top" Width="94"/>
 
     </Grid>
 </Window>

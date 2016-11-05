@@ -28,7 +28,19 @@ namespace WikiLeaks.Managers
         private CacheManager _cacheManager = null;
         private MainWindow _mainWindow = null;
 
-        
+        Process _searchFolderProc = null;
+
+        public void KillSearchFolderProcess()
+        {
+            if (_searchFolderProc == null)
+                return;
+            try
+            {
+                _searchFolderProc.Kill();
+                _searchFolderProc.Close();
+            }
+            catch (Exception ex) { }
+        }
 
         public bool CancelSearch{ get; set; }
         private Dictionary<int, SearchResult> _searchResults = new Dictionary<int, SearchResult>();
@@ -61,13 +73,13 @@ namespace WikiLeaks.Managers
         {
             if (startId > endId || startId < 0)
             {
-                _mainWindow.UpdateUi("INVALID IDs", "messagebox.show");
+                _mainWindow.UpdateControl("INVALID IDs", "messagebox.show");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(filterName))
             {
-                _mainWindow.UpdateUi("INVALID FILTER", "messagebox.show");
+                _mainWindow.UpdateControl("INVALID FILTER", "messagebox.show");
                 return;
             }
 
@@ -75,7 +87,7 @@ namespace WikiLeaks.Managers
 
             if(searchFilter == null)
             {
-                _mainWindow.UpdateUi("FILTER WASN'T FOUND", "messagebox.show");
+                _mainWindow.UpdateControl("FILTER WASN'T FOUND", "messagebox.show");
                 return;
             }
             //Iterate through the cache ID's because they contain references to attachments
@@ -93,13 +105,13 @@ namespace WikiLeaks.Managers
             emailStatus.End = endId;
             emailStatus.Reset = true;
             emailStatus.Current = startId;
-            _mainWindow.UpdateUi(emailStatus, "progressbar.update");
+            _mainWindow.UpdateControl(emailStatus, "progressbar.update");
             emailStatus.Reset = false;
 
             foreach (int cacheId in cacheIds)
             {
                 emailStatus.Current = cacheId;
-                _mainWindow.UpdateUi(emailStatus, "progressbar.update");
+                _mainWindow.UpdateControl(emailStatus, "progressbar.update");
 
                 if (CancelSearch)
                 {
@@ -150,14 +162,14 @@ namespace WikiLeaks.Managers
                 termStatus.End = searchTerms.Count() -1;
                 termStatus.Reset = true;
                 termStatus.Current = 0;
-                _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                _mainWindow.UpdateControl(termStatus, "progressbar.update");
                 termStatus.Reset = false;
                 int termIdx = 0;
 
                 foreach (string searchTerm in searchTerms)
                 {
                     termStatus.Current = termIdx;
-                    _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                    _mainWindow.UpdateControl(termStatus, "progressbar.update");
                     termIdx++;
 
                     if (!searchResult.Document.Contains(searchTerm))
@@ -197,7 +209,7 @@ namespace WikiLeaks.Managers
                     }
                 }
                // termStatus.Current = 0;
-               // _mainWindow.UpdateUi(termStatus, "progressbar.update");
+               // _mainWindow.UpdateControl(termStatus, "progressbar.update");
 
 
                 ////this will update the treeview, by default it shows the filters in the
@@ -205,14 +217,14 @@ namespace WikiLeaks.Managers
                 ////the email id under the filter node.
                 if (searchResult.ResultCount > 0 && _mainWindow != null)
                 {
-                    _mainWindow.UpdateUi(searchResult, "treeview.results");
+                    _mainWindow.UpdateControl(searchResult, "treeview.results");
                 }
 
                 // emailStatus.Current = startId;
-                //  _mainWindow.UpdateUi(emailStatus, "progressbar.update");
+                //  _mainWindow.UpdateControl(emailStatus, "progressbar.update");
             }
             // emailStatus.Current = startId;
-            //  _mainWindow.UpdateUi(emailStatus, "progressbar.update");
+            //  _mainWindow.UpdateControl(emailStatus, "progressbar.update");
         }
 
 
@@ -220,7 +232,7 @@ namespace WikiLeaks.Managers
         {
             SearchStatus filterStatus = new SearchStatus() { ControlName = "prgFilterProgress", Start = 0,End = _filterManager.Filters.Count() - 1,Reset = true,Current = 0 };
             
-            _mainWindow.UpdateUi(filterStatus, "progressbar.update");
+            _mainWindow.UpdateControl(filterStatus, "progressbar.update");
             filterStatus.Reset = false;
             int filterIndex = 0;
 
@@ -245,14 +257,14 @@ namespace WikiLeaks.Managers
               
                 SearchStatus termStatus = new SearchStatus() { ControlName = "prgSearchTerms", Start = 0, End = searchTerms.Count() - 1,Reset = true, Current = 0 };
 
-                _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                _mainWindow.UpdateControl(termStatus, "progressbar.update");
                 termStatus.Reset = false;
                 int termIdx = 0;
 
                 foreach (string searchTerm in searchTerms)
                 {
                     termStatus.Current = termIdx;
-                    _mainWindow.UpdateUi(termStatus, "progressbar.update");
+                    _mainWindow.UpdateControl(termStatus, "progressbar.update");
                     termIdx++;
 
                     if (!searchResult.Document.Contains(searchTerm) || string.IsNullOrWhiteSpace(searchTerm))
@@ -265,13 +277,13 @@ namespace WikiLeaks.Managers
                     searchResult.Document = searchResult.Document.HighlightText(searchTerm, highlightColor);
                 }
                 searchResult.ResultCount = filterHitCount;
-                _mainWindow.UpdateUi(searchResult, "treeview.results");
+                _mainWindow.UpdateControl(searchResult, "treeview.results");
 
                 // searchResult.LeakHitCount
 
                filterIndex++;
                 filterStatus.Current = filterIndex;
-                _mainWindow.UpdateUi(filterStatus, "progressbar.update");
+                _mainWindow.UpdateControl(filterStatus, "progressbar.update");
                 filterHitCount = 0;//reset this or it will update the wrong nodes in the treeview.
             }
             
@@ -328,7 +340,7 @@ namespace WikiLeaks.Managers
             catch (Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
             return true;
@@ -397,7 +409,7 @@ namespace WikiLeaks.Managers
 
             if (!File.Exists(pathToFile))
             {
-                _mainWindow.UpdateUi("Invalid file: " + pathToFile, "messagebox.show");
+                _mainWindow.UpdateControl("Invalid file: " + pathToFile, "messagebox.show");
                 return msg;
             }
             
@@ -409,7 +421,7 @@ namespace WikiLeaks.Managers
             }
             catch(Exception ex)
             {
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
             }
             return msg;
         }
@@ -448,10 +460,125 @@ namespace WikiLeaks.Managers
                 File.WriteAllBytes(pathToFile, a.Data);
             }catch(Exception ex)
             {
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
             return true;
         }
+
+
+        #region File search helper functions
+
+        public bool SearchFolder(string filterName, string searchTerm)
+        {
+            string appPath = _application.Settings.AgentExePath;
+
+            if (!File.Exists(appPath))
+            {
+                _mainWindow.UpdateControl("Agent.exe not found at:" + appPath, "messagebox.show");
+                return false;
+            }
+
+            string tempFolder = System.IO.Path.GetTempPath();
+
+            string searchPathArgs = " -d ";//directory
+            string searchPath = _application.Settings.AgentSearchFolder;
+
+            string fileArgs = " -f ";//filenames to search for.
+            string fileTypes =  _application.Settings.SearchFileType;
+
+            string searchArgs = " -c ";
+            string searchFor = "\"" + searchTerm+ "\"";//text to search for
+
+            string outputArgs = " -o "; //tell app to write to output file. 
+                                        // outputArgs += " -oa "; //Append output
+            string outputPath = Path.Combine(tempFolder, filterName.Replace(" ", "") + "." +searchTerm.Replace(" ", "") + filterName.Replace(" ", "")); //".srch");
+            string outputOptions = " -ofc";//output csv
+           
+            //-oc //            Output content lines
+            outputOptions += " -ocn"; //           Don't Output content lines
+
+            string searchSubFolders = " -s";//search subfolders
+
+            string procStartArg = searchPathArgs + searchPath + fileArgs + fileTypes + searchArgs + searchFor + outputArgs + outputPath + outputOptions + searchSubFolders;
+
+            try
+            {
+                
+                Watch(tempFolder, filterName, searchTerm);
+                _searchFolderProc = System.Diagnostics.Process.Start(appPath, procStartArg);
+                _searchFolderProc.WaitForExit();
+              //  _searchFolderProc.Kill()
+                //_searchFolderProc.Close()
+            }
+            catch (Exception ex)
+            {
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
+                return false;
+            }
+            return true;
+        }
+     
+        protected void Watch(string pathToFolder, string filterName,string searchTerm)
+        {
+            FileSystemWatcher watcher = new FileSystemWatcher();
+            watcher.Path = pathToFolder;
+            watcher.NotifyFilter = NotifyFilters.LastWrite;
+            watcher.Filter = "*." + searchTerm.Replace(" ", "") + filterName.Replace(" ", "");// "*.srch";
+            watcher.Changed += new System.IO.FileSystemEventHandler((s, e) => OnChanged(s, e, filterName, searchTerm));
+            // watcher.Changed += new FileSystemEventHandler(OnChanged);//this is default (without searchTerm parameter)
+            watcher.EnableRaisingEvents = true;
+        }
+
+        protected void OnChanged(object source, FileSystemEventArgs e, string filterName, string searchTerm)
+        {
+            Console.WriteLine(e.Name);
+            IEnumerable<string> fileLines = ReadLines(e.FullPath);
+
+            foreach (string line in fileLines)
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                string[] tokens = line.Split(','); 
+
+                if (tokens.Count() < 2)
+                    continue;
+
+                string pathToFile = tokens[0];
+                //string path = tokens[0];
+                //string file = tokens[1];
+                SearchResult sr = new SearchResult();
+                sr.FilterName = filterName;
+                sr.LeakId = -1;
+                sr.ResultCount = fileLines.Count();
+                //if (sr.SearchTermHitCount.ContainsKey(searchTerm))
+                //    sr.SearchTermHitCount[searchTerm] = fileLines.Count();
+                //else
+                //    sr.SearchTermHitCount.Add(searchTerm, fileLines.Count());
+
+                sr.FileName = searchTerm + "-" + Path.GetFileName(pathToFile);
+                sr.FilePath = pathToFile;
+              //  sr.Document = tokens[tokens.Count() - 1];
+            
+                _mainWindow.UpdateControl(sr, "treeview.results.search.folder");
+            }
+        }
+
+        public static IEnumerable<string> ReadLines(string path)
+        {
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 0x1000, FileOptions.SequentialScan))
+            using (var sr = new StreamReader(fs, Encoding.UTF8))
+            {
+                string line;
+                while ((line = sr.ReadLine()) != null)
+                {
+                    yield return line;
+                }
+            }
+        }
+
+
+        #endregion
     }
 }

@@ -30,7 +30,7 @@ namespace WikiLeaks.Managers
 
                 if (!File.Exists(pathToFile)&& CreateDefaultFile(pathToFile) ==false)
                 {
-                    _mainWindow.UpdateUi("FAILED TO GET APP SETTINGS FILE!", "messagebox.show");
+                    _mainWindow.UpdateControl("FAILED TO GET APP SETTINGS FILE!", "messagebox.show");
                     return;
                 }
             }
@@ -48,7 +48,7 @@ namespace WikiLeaks.Managers
             catch(Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
             }
 
         }
@@ -77,7 +77,7 @@ namespace WikiLeaks.Managers
             catch(Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
             return true;
@@ -102,7 +102,7 @@ namespace WikiLeaks.Managers
             catch (Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
             return true;

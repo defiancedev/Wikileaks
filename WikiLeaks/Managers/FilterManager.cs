@@ -35,7 +35,7 @@ namespace WikiLeaks.Managers
 
             if (string.IsNullOrWhiteSpace(filterFolder) || !Directory.Exists(filterFolder))
             {
-                _mainWindow.UpdateUi("Filter folder is not valid.", "messagebox.show");
+                _mainWindow.UpdateControl("Filter folder is not valid.", "messagebox.show");
                 return;
             }
 
@@ -62,7 +62,7 @@ namespace WikiLeaks.Managers
             catch (Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
             }
 
             _filterFolder = filterFolder;
@@ -78,7 +78,7 @@ namespace WikiLeaks.Managers
         {
             if(f == null || string.IsNullOrWhiteSpace(_filterFolder))
             {
-                _mainWindow.UpdateUi("Filter is null or path isn't defined.", "messagebox.show");
+                _mainWindow.UpdateControl("Filter is null or path isn't defined.", "messagebox.show");
                 return false;
             }
 
@@ -86,7 +86,7 @@ namespace WikiLeaks.Managers
 
             if (File.Exists(pathToFile))
             {
-                _mainWindow.UpdateUi("Filter already exists.", "messagebox.show");
+                _mainWindow.UpdateControl("Filter already exists.", "messagebox.show");
                 return false;
             }
 
@@ -106,7 +106,7 @@ namespace WikiLeaks.Managers
             catch (Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
             return true;
@@ -116,7 +116,7 @@ namespace WikiLeaks.Managers
         {
             if (f == null || string.IsNullOrWhiteSpace(_filterFolder))
             {
-                _mainWindow.UpdateUi("Filter is null or path isn't defined.", "messagebox.show");
+                _mainWindow.UpdateControl("Filter is null or path isn't defined.", "messagebox.show");
                 return false;
             }
 
@@ -139,7 +139,7 @@ namespace WikiLeaks.Managers
             catch (Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
 
@@ -156,7 +156,7 @@ namespace WikiLeaks.Managers
         {
             if (string.IsNullOrWhiteSpace(filterName) || string.IsNullOrWhiteSpace(_filterFolder))
             {
-                _mainWindow.UpdateUi("Filter is null or path isn't defined.", "messagebox.show");
+                _mainWindow.UpdateControl("Filter is null or path isn't defined.", "messagebox.show");
                 return false;
             }
 
@@ -177,7 +177,7 @@ namespace WikiLeaks.Managers
             catch(Exception ex)
             {
                 Debug.Assert(false, ex.Message);
-                _mainWindow.UpdateUi(ex.Message, "messagebox.show");
+                _mainWindow.UpdateControl(ex.Message, "messagebox.show");
                 return false;
             }
 

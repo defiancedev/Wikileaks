@@ -34,5 +34,9 @@ namespace WikiLeaks.Models
 
         public string Document { get; set; }
 
+        public string FileName { get; set; }
+
+        public string FilePath { get; set; }
+
     }
 }

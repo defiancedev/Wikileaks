@@ -30,5 +30,13 @@ namespace WikiLeaks.Models
         public string ResultsFolder { get; set; }
 
         public string AttachemtsFolder { get; set; }
+
+
+        public bool UseAgentSearch { get; set; }
+
+        public string AgentSearchFolder { get; set; }
+        public string  AgentExePath { get; set; }
+
+        public string SearchFileType { get; set; }
     }
 }
