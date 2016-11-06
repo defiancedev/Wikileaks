@@ -64,11 +64,12 @@ namespace WikiLeaks.Managers
                     Settings.SearchEndId = 20;
                     Settings.BaseUrl = "https://wikileaks.org/podesta-emails/emaildid/";
                     Settings.CacheFolder = Path.Combine( EnvironmentEx.AppDataFolder, "Cache\\");
-
+                    
                     Settings.FilterFolder = Path.Combine(EnvironmentEx.AppDataFolder, "Filters\\");
+                    Settings.UseAgentSearch = false;
 
-                    string dataasstring = JsonConvert.SerializeObject(Settings);
-                    byte[] info = new UTF8Encoding(true).GetBytes(dataasstring);
+                    string datasstring = JsonConvert.SerializeObject(Settings);
+                    byte[] info = new UTF8Encoding(true).GetBytes(datasstring);
                     fs.Write(info, 0, info.Length);
                     byte[] data = new byte[] { 0x0 };
                     fs.Write(data, 0, data.Length);

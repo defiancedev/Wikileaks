@@ -375,7 +375,7 @@ namespace WikiLeaks.Managers
             //Since this is going in the wild I'm sure they don't want every neckbeard on earth slamming their servers.
             // 10 second delay between requests.
             //LOOK FOR ALREADY DOWNLOADED CACHE FILES! DON'T BE A DICK! 
-            Thread.Sleep(TimeSpan.FromSeconds(2));
+            Thread.Sleep(TimeSpan.FromSeconds(10));
 
             return content;
         }

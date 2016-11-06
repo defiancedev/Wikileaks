@@ -30,7 +30,7 @@ namespace WikiLeaks.Managers
             _mainWindow = wnd;
             
             if(string.IsNullOrWhiteSpace(pathToFolder))
-                pathToFolder = EnvironmentEx.AppDataFolder + "\\Cache\\";
+                pathToFolder = Path.Combine(EnvironmentEx.AppDataFolder , "\\Cache\\");
 
             CacheIds = new List<int>();
 

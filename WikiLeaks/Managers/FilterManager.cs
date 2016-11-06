@@ -19,7 +19,7 @@ namespace WikiLeaks.Managers
         {
             _mainWindow = wnd;
             Filters = new List<Filter>();
-            _filterFolder = EnvironmentEx.AppDataFolder + "\\Filters\\";
+            _filterFolder = Path.Combine(EnvironmentEx.AppDataFolder , "\\Filters\\");
 
         }
 
@@ -31,7 +31,7 @@ namespace WikiLeaks.Managers
 
             //Default it to app_data folder where installed
             if (string.IsNullOrWhiteSpace(filterFolder))
-                filterFolder = EnvironmentEx.AppDataFolder + "\\Filters\\";
+                filterFolder =  Path.Combine( EnvironmentEx.AppDataFolder , "\\Filters\\");
 
             if (string.IsNullOrWhiteSpace(filterFolder) || !Directory.Exists(filterFolder))
             {
